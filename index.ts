@@ -1,163 +1,176 @@
-import * as crypto from 'crypto';
+import * as crypto from "crypto";
 
-export async function hash(data: string) {
-    const hash = crypto.createHash('sha256');
-    hash.update(data);
-    return hash.digest('hex');
+import { createHash } from "sha256-uint8array";
+import { uint8ArrayToHex } from "uint8array-extras";
+
+export function hash(data: string): string {
+  const hash = createHash();
+  const encoder = new TextEncoder();
+  hash.update(encoder.encode(data));
+  return uint8ArrayToHex(hash.digest());
 }
 
-export async function createSignature(data: string, key: string) {
-    return await hash(data + key);
+export function createSignature(data: string, key: string) {
+  return hash(data + key);
 }
 
-export async function createToken(_data: string | {}, key: string) {
-    let data: string = '';
+export function createToken(_data: string | {}, key: string) {
+  let data: string = "";
 
-    if (typeof _data !== 'string') {
-        try {
-            data = JSON.stringify(_data);
-        } catch (e) {
-            throw new Error('data must be a string or JSON-serializable object');
-        }
-    } else {
-        data = _data;
-    }
-
-    const signature = await createSignature(data, key);
-    return btoa(`${btoa(data)}:${signature}`);
-}
-
-
-export async function readToken(token: string): Promise<[string | {}, string]> {
+  if (typeof _data !== "string") {
     try {
-        let [data, signature] = atob(token).split(':');
-        data = atob(data);
-        try {
-            data = JSON.parse(data);
-        } catch (e) { }
-
-        return [data, signature];
+      data = JSON.stringify(_data);
     } catch (e) {
-        throw new Error('invalid token');
+      throw new Error("Data must be a string or JSON-serializable object");
     }
+  } else {
+    data = _data;
+  }
+
+  const signature = createSignature(data, key);
+  return btoa(`${btoa(data)}:${signature}`);
 }
 
-export async function verifyToken(token: string, key: string) {
+export function readToken(
+  token: string,
+): [string | Record<string, any>, string] {
+  try {
+    let [data, signature] = atob(token).split(":");
+    data = atob(data);
     try {
-        const [data, _] = await readToken(token);
-        const verifiedToken = await createToken(data, key);
-        return verifiedToken === token;
-    } catch (e) {
-        console.error(e);
-        return false;
-    }
+      data = JSON.parse(data);
+    } catch (e) {}
+
+    return [data, signature];
+  } catch (e) {
+    throw new Error("Invalid token");
+  }
+}
+
+export function verifyToken(token: string, key: string) {
+  try {
+    let [data, sig] = readToken(token);
+
+    if (typeof data !== "string") data = JSON.stringify(data);
+    if (typeof data !== "string") return false;
+
+    const verifiedSig = createSignature(data, key);
+    return verifiedSig === sig;
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
 }
 
 const ONE_SECOND = 1000;
 const ONE_MINUTE = 60 * ONE_SECOND;
 const FIFTEEN_MINUTES = 15 * ONE_MINUTE;
-const ONE_HOUR = FIFTEEN_MINUTES * 4;
-const ONE_DAY = ONE_HOUR * 24;
-const ONE_YEAR = ONE_DAY * 365;
+const ONE_HOUR = 4 * FIFTEEN_MINUTES;
+const ONE_DAY = 24 * ONE_HOUR;
+const ONE_MONTH = 30 * ONE_DAY;
+const ONE_QUARTER = ONE_MONTH * 3;
 
 export class Token {
-    token: string;
-    expires: number;
+  token: string;
+  expires: number;
 
-    constructor(token: string, expires: number) {
-        this.token = token;
-        this.expires = expires;
-    }
+  constructor(token: string, expires: number) {
+    this.token = token;
+    this.expires = expires;
+  }
 
-    get expired() {
-        return Date.now() > this.expires;
-    }
+  get expired() {
+    return Date.now() > this.expires;
+  }
 }
 
 export type AccessTokenData = {
-    userId: number;
-    token: string;
-    expires: number;
+  userId: number | string;
+  token: string;
+  expires: number;
 };
 
 export type RefreshTokenData = {
-    token: string;
-    accessToken: string;
-    expires: number;
-}
+  token: string;
+  accessToken: string;
+  expires: number;
+};
 
 export class AccessToken extends Token {
-    userId: number;
+  userId: number | string;
 
-    constructor(userId: number, token?: string, expires?: number) {
-        if (!token) token = crypto.randomUUID();
-        if (!expires) expires = Date.now() + FIFTEEN_MINUTES;
+  constructor(userId: number | string, expires?: number, token?: string) {
+    if (!token) token = crypto.randomUUID();
+    if (!expires) expires = Date.now() + FIFTEEN_MINUTES;
 
-        super(token, expires);
+    super(token, expires);
 
-        this.userId = userId;
-    }
+    this.userId = userId;
+  }
 
-    async sign(key: string) {
-        const data: AccessTokenData = {
-            userId: this.userId,
-            token: this.token,
-            expires: this.expires,
-        };
+  sign(key: string) {
+    const data: AccessTokenData = {
+      userId: this.userId,
+      token: this.token,
+      expires: this.expires,
+    };
 
-        return await createToken(data, key);
-    }
+    return createToken(data, key);
+  }
 
-    static async parse(token: string, key: string) {
-        const isValid = await verifyToken(token, key)
-        if (!isValid) throw new Error('invalid token');
+  static parse(token: string, key: string) {
+    const isValid = verifyToken(token, key);
+    if (!isValid) throw new Error("Invalid token");
 
-        const [data, _] = await readToken(token) as [AccessTokenData, string];
+    const [data, _] = readToken(token) as [AccessTokenData, string];
 
-        return new AccessToken(data.userId, data.token, data.expires);
-    }
+    return new AccessToken(data.userId, data.expires, data.token);
+  }
 }
 
 export class RefreshToken extends Token {
-    accessToken: AccessToken;
+  accessToken: AccessToken;
 
-    constructor(accessToken: AccessToken, token?: string, expires?: number) {
-        if (!token) token = crypto.randomUUID();
-        if (!expires) expires = Date.now() + ONE_YEAR;
+  constructor(accessToken: AccessToken, expires?: number, token?: string) {
+    if (!token) token = crypto.randomUUID();
+    if (!expires) expires = Date.now() + ONE_QUARTER;
 
-        super(token, expires);
+    super(token, expires);
 
-        this.accessToken = accessToken;
-    }
+    this.accessToken = accessToken;
+  }
 
-    async sign(key: string) {
-        const data: RefreshTokenData = {
-            token: this.token,
-            accessToken: this.accessToken.token,
-            expires: this.expires,
-        };
+  sign(key: string) {
+    const data: RefreshTokenData = {
+      token: this.token,
+      accessToken: this.accessToken.token,
+      expires: this.expires,
+    };
 
-        return await createToken(data, key);
-    }
+    return createToken(data, key);
+  }
 
-    static async parse(token: string, accessToken: AccessToken, key: string) {
-        const isValid = await verifyToken(token, key)
-        if (!isValid) throw new Error('invalid token');
+  static parse(token: string, accessToken: AccessToken, key: string) {
+    const isValid = verifyToken(token, key);
+    if (!isValid) throw new Error("Invalid token");
 
-        const [data, _] = await readToken(token) as [RefreshTokenData, string];
+    const [data, _] = readToken(token) as [RefreshTokenData, string];
 
-        if (data.accessToken !== accessToken.token) throw new Error('invalid token');
+    if (data.accessToken !== accessToken.token)
+      throw new Error("Invalid token");
 
-        return new RefreshToken(accessToken, data.token, data.expires);
-    }
+    return new RefreshToken(accessToken, data.expires, data.token);
+  }
 }
 
-export async function createAccessRefreshPair(userId: number, key: string) {
-    const accessToken = new AccessToken(userId);
-    const refreshToken = new RefreshToken(accessToken);
+export function createAccessRefreshPair(
+  userId: number | string,
+  key: string,
+  accessTokenExpires?: number,
+  refreshTokenExpires?: number,
+): [string, string] {
+  const accessToken = new AccessToken(userId, accessTokenExpires);
+  const refreshToken = new RefreshToken(accessToken, refreshTokenExpires);
 
-    return [
-        await accessToken.sign(key),
-        await refreshToken.sign(key),
-    ];
+  return [accessToken.sign(key), refreshToken.sign(key)];
 }

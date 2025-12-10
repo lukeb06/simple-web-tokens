@@ -1,11 +1,11 @@
 {
   "name": "simple-web-tokens",
-  "version": "1.0.3",
+  "version": "1.0.8",
   "module": "dist/index.mjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-      "build": "tsup index.ts --format cjs,esm --dts"
+    "build": "tsup index.ts --format cjs,esm --dts"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -14,5 +14,9 @@
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "sha256-uint8array": "^0.10.7",
+    "uint8array-extras": "^1.5.0"
   }
 }
