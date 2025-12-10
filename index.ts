@@ -1,7 +1,6 @@
-import * as crypto from "crypto";
-
-import { createHash } from "sha256-uint8array";
-import { uint8ArrayToHex } from "uint8array-extras";
+import { createHash } from "./sha256-uint8array";
+import { uint8ArrayToHex } from "./uint8array-extras";
+import { v4 } from "uuid";
 
 export function hash(data: string): string {
   const hash = createHash();
@@ -100,7 +99,7 @@ export class AccessToken extends Token {
   userId: number | string;
 
   constructor(userId: number | string, expires?: number, token?: string) {
-    if (!token) token = crypto.randomUUID();
+    if (!token) token = v4();
     if (!expires) expires = Date.now() + FIFTEEN_MINUTES;
 
     super(token, expires);
@@ -132,7 +131,7 @@ export class RefreshToken extends Token {
   accessToken: AccessToken;
 
   constructor(accessToken: AccessToken, expires?: number, token?: string) {
-    if (!token) token = crypto.randomUUID();
+    if (!token) token = v4();
     if (!expires) expires = Date.now() + ONE_QUARTER;
 
     super(token, expires);

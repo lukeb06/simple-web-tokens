@@ -1,6 +1,6 @@
 {
   "name": "simple-web-tokens",
-  "version": "1.0.9",
+  "version": "1.1.1",
   "module": "dist/index.mjs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -8,7 +8,6 @@
     "build": "tsup index.ts --format cjs,esm --dts"
   },
   "devDependencies": {
-    "@types/bun": "latest",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2"
   },
@@ -16,7 +15,6 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "sha256-uint8array": "^0.10.7",
-    "uint8array-extras": "^1.5.0"
+    "uuid": "^13.0.0"
   }
 }
