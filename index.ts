@@ -171,9 +171,9 @@ export function createAccessRefreshPair(
   key: string,
   accessTokenExpires?: number,
   refreshTokenExpires?: number,
-): [string, string] {
+): [string, string, string] {
   const accessToken = new AccessToken(userId, accessTokenExpires);
   const refreshToken = new RefreshToken(accessToken, refreshTokenExpires);
 
-  return [accessToken.sign(key), refreshToken.sign(key)];
+  return [accessToken.sign(key), refreshToken.sign(key), refreshToken.version];
 }
