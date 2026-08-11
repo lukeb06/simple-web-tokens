@@ -132,14 +132,20 @@ export class RefreshToken extends Token {
   accessToken: AccessToken;
   version: string;
 
-  constructor(accessToken: AccessToken, expires?: number, token?: string) {
+  constructor(
+    accessToken: AccessToken,
+    expires?: number,
+    token?: string,
+    version?: string,
+  ) {
     if (!token) token = randomUUID();
     if (!expires) expires = Date.now() + ONE_QUARTER;
+    if (!version) version = randomUUID();
 
     super(token, expires);
 
     this.accessToken = accessToken;
-    this.version = randomUUID();
+    this.version = version;
   }
 
   sign(key: string) {
@@ -162,18 +168,32 @@ export class RefreshToken extends Token {
     if (data.accessToken !== accessToken.token)
       throw new Error("Invalid token");
 
-    return new RefreshToken(accessToken, data.expires, data.token);
+    return new RefreshToken(
+      accessToken,
+      data.expires,
+      data.token,
+      data.version,
+    );
   }
 }
 
+export type CreateAccessRefreshPairOptions = {
+  accessTokenExpires?: number;
+  refreshTokenExpires?: number;
+  version?: string;
+};
 export function createAccessRefreshPair(
   userId: number | string,
   key: string,
-  accessTokenExpires?: number,
-  refreshTokenExpires?: number,
+  options?: CreateAccessRefreshPairOptions,
 ): [string, string, string] {
-  const accessToken = new AccessToken(userId, accessTokenExpires);
-  const refreshToken = new RefreshToken(accessToken, refreshTokenExpires);
+  const accessToken = new AccessToken(userId, options?.accessTokenExpires);
+  const refreshToken = new RefreshToken(
+    accessToken,
+    options?.refreshTokenExpires,
+    undefined,
+    options?.version,
+  );
 
   return [accessToken.sign(key), refreshToken.sign(key), refreshToken.version];
 }
