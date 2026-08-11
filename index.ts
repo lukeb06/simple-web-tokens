@@ -93,6 +93,7 @@ export type RefreshTokenData = {
   token: string;
   accessToken: string;
   expires: number;
+  version: string;
 };
 
 export class AccessToken extends Token {
@@ -129,6 +130,7 @@ export class AccessToken extends Token {
 
 export class RefreshToken extends Token {
   accessToken: AccessToken;
+  version: string;
 
   constructor(accessToken: AccessToken, expires?: number, token?: string) {
     if (!token) token = randomUUID();
@@ -137,6 +139,7 @@ export class RefreshToken extends Token {
     super(token, expires);
 
     this.accessToken = accessToken;
+    this.version = randomUUID();
   }
 
   sign(key: string) {
@@ -144,6 +147,7 @@ export class RefreshToken extends Token {
       token: this.token,
       accessToken: this.accessToken.token,
       expires: this.expires,
+      version: this.version,
     };
 
     return createToken(data, key);
