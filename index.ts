@@ -120,7 +120,7 @@ export class AccessToken extends Token {
 
   static parse(token: string, key: string) {
     const isValid = verifyToken(token, key);
-    if (!isValid) throw new Error("Invalid token");
+    if (!isValid) throw new Error("Invalid access token");
 
     const [data, _] = readToken(token) as [AccessTokenData, string];
 
@@ -161,7 +161,7 @@ export class RefreshToken extends Token {
 
   static parse(token: string, key: string) {
     const isValid = verifyToken(token, key);
-    if (!isValid) throw new Error("Invalid token");
+    if (!isValid) throw new Error("Invalid refresh token");
 
     const [data, _] = readToken(token) as [RefreshTokenData, string];
 
