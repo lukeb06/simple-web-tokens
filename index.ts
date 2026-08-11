@@ -159,14 +159,13 @@ export class RefreshToken extends Token {
     return createToken(data, key);
   }
 
-  static parse(token: string, accessToken: AccessToken, key: string) {
+  static parse(token: string, key: string) {
     const isValid = verifyToken(token, key);
     if (!isValid) throw new Error("Invalid token");
 
     const [data, _] = readToken(token) as [RefreshTokenData, string];
 
-    if (data.accessToken !== accessToken.token)
-      throw new Error("Invalid token");
+    const accessToken = AccessToken.parse(data.accessToken, key);
 
     return new RefreshToken(
       accessToken,
