@@ -42,7 +42,7 @@ export function readToken(
 
     return [data, signature];
   } catch (e) {
-    throw new Error("Invalid token");
+    throw new Error("Read Token: Invalid token");
   }
 }
 
@@ -165,14 +165,10 @@ export class RefreshToken extends Token {
 
     const [data, _] = readToken(token) as [RefreshTokenData, string];
 
-    const accessToken = AccessToken.parse(data.accessToken, key);
+    const accessToken = createToken(data.accessToken, key);
+    const at = AccessToken.parse(accessToken, key);
 
-    return new RefreshToken(
-      accessToken,
-      data.expires,
-      data.token,
-      data.version,
-    );
+    return new RefreshToken(at, data.expires, data.token, data.version);
   }
 }
 
